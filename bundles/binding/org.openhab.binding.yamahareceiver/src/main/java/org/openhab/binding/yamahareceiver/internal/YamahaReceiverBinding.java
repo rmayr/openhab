@@ -266,7 +266,6 @@ public class YamahaReceiverBinding extends
 		// ignore
 	}
 
-	@Override
 	public void updated(Dictionary<String, ?> config)
 			throws ConfigurationException {
 		logger.debug(BINDING_NAME + " updated");

@@ -56,7 +56,6 @@ public class YamahaReceiverGenericBindingProvider extends
 	/**
 	 * @{inheritDoc
 	 */
-	@Override
 	public void validateItemType(Item item, String bindingConfig)
 			throws BindingConfigParseException {
 		
@@ -96,12 +95,10 @@ public class YamahaReceiverGenericBindingProvider extends
 		return props;
 	}
 
-	@Override
 	public YamahaReceiverBindingConfig getItemConfig(String itemName) {
 		return ((YamahaReceiverBindingConfig) bindingConfigs.get(itemName));
 	}
 
-	@Override
 	public void getDeviceConfigs(String deviceUid,
 			Map<String, YamahaReceiverBindingConfig> configs) {
 		for (BindingConfig config : bindingConfigs.values()) {
