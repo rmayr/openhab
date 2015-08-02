@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -43,7 +43,7 @@ public class RFXComConnection implements ManagedService {
 	private static byte[] setMode = null;
 
 	static RFXComSerialConnector connector = new RFXComSerialConnector();
-	private MessageLister eventLister = new MessageLister();
+	private final MessageLister eventLister = new MessageLister();
 	
 	public void activate() {
 		logger.debug("Activate");
@@ -75,6 +75,12 @@ public class RFXComConnection implements ManagedService {
 		logger.debug("Configuration updated, config {}", config != null ? true
 				: false);
 
+		if (serialPort != null) {
+			logger.debug("Close previous connection");
+			connector.removeEventListener(eventLister);
+			connector.disconnect();
+		}
+		
 		if (config != null) {
 
 			serialPort = (String) config.get("serialPort");
@@ -132,13 +138,12 @@ public class RFXComConnection implements ManagedService {
 		}
 	}
 	
-	private class MessageLister implements RFXComEventListener {
+	private static class MessageLister implements RFXComEventListener {
 
 		@Override
 		public void packetReceived(EventObject event, byte[] data) {
 
 			try {
-				
 				RFXComMessageInterface obj = RFXComMessageFactory.getMessageInterface(data);
 				logger.debug("Data received:\n{}", obj.toString());
 				

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -246,10 +246,19 @@ public enum SonosCommandType {
 		}
 	},
 
-	// Not implemented yet
-	SETURI {
+	PLAYURI {
 		{
-			command = "playURI";
+			command = "playuri";
+			service = "AVTransport";
+			action = "SetAVTransportURI";
+			variable = null;
+			typeClass = StringType.class;
+			direction = Direction.OUT;
+		}
+	},
+	PLAYLINEIN {
+		{
+			command = "playline";
 			service = "AVTransport";
 			action = "SetAVTransportURI";
 			variable = null;
@@ -389,6 +398,30 @@ public enum SonosCommandType {
 
 	},
 	
+	SAVEALL {
+		{
+			command = "saveall";
+			service = null;
+			action = null;
+			variable = null;
+			typeClass = OnOffType.class;
+			direction = Direction.OUT;
+		}
+
+	},
+	
+	RESTOREALL {
+		{
+			command = "restoreall";
+			service = null;
+			action = null;
+			variable = null;
+			typeClass = OnOffType.class;
+			direction = Direction.OUT;
+		}
+
+	},
+
 	SAVE {
 		{
 			command = "save";
@@ -412,7 +445,6 @@ public enum SonosCommandType {
 		}
 
 	},
-
 	
 	SETALARM {
 		{

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -17,8 +17,10 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriBuilder;
 
+import org.atmosphere.cpr.BroadcasterConfig;
 import org.openhab.core.items.Item;
 import org.openhab.io.rest.RESTApplication;
+import org.openhab.io.rest.internal.cache.SingleMessageBroadcastCache;
 import org.openhab.io.rest.internal.resources.ResponseTypeHelper;
 import org.openhab.io.rest.internal.resources.SitemapResource;
 import org.openhab.io.rest.internal.resources.beans.PageBean;
@@ -37,12 +39,20 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Kai Kreuzer
  * @author Oliver Mazur
+ * @author Dan Cunningham
  * @since 0.9.0
  *
  */
 public class SitemapStateChangeListener extends ResourceStateChangeListener {
 
-	private static final Logger logger = LoggerFactory.getLogger(ResourceStateChangeListener.class);
+	private static final Logger logger = LoggerFactory.getLogger(SitemapStateChangeListener.class);
+	
+	@Override
+	public void configureCache(BroadcasterConfig config){
+		config.setBroadcasterCache(new SingleMessageBroadcastCache());
+		config.getBroadcasterCache().configure(broadcaster.getBroadcasterConfig());
+		config.getBroadcasterCache().start();
+	}
 	
 	@Override
 	protected Object getResponseObject(HttpServletRequest request) {
@@ -103,6 +113,10 @@ public class SitemapStateChangeListener extends ResourceStateChangeListener {
 		for(Widget child : children) {
 			if (child instanceof Frame) {
 				Frame frame = (Frame) child;
+				String itemName = frame.getItem();
+				if(itemName!=null) {
+					itemNames.add(itemName);
+				}
 				itemNames.addAll(getRelevantItemNamesForWidgets(frame.getChildren()));
 			} else {
 				String itemName = child.getItem();
@@ -115,22 +129,26 @@ public class SitemapStateChangeListener extends ResourceStateChangeListener {
 	}
 	
 	private PageBean getPageBean(HttpServletRequest request){
-		String pathInfo = request.getPathInfo();
-		
-		String responseType = (new ResponseTypeHelper()).getResponseType(request);
-		if(responseType!=null) {
-			URI basePath = UriBuilder.fromUri(request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+(request.getContextPath().equals("null")?"":request.getContextPath()) + RESTApplication.REST_SERVLET_ALIAS +"/").build();
-			if (pathInfo.startsWith("/" + SitemapResource.PATH_SITEMAPS)) {
-	        	String[] pathSegments = pathInfo.substring(1).split("/");
-	            if(pathSegments.length>=3) {
-	            	String sitemapName = pathSegments[1];
-	            	String pageId = pathSegments[2];
-	            	Sitemap sitemap = (Sitemap) RESTApplication.getModelRepository().getModel(sitemapName + ".sitemap");
-	            	if(sitemap!=null) {
-						return SitemapResource.getPageBean(sitemapName, pageId, basePath);
-	            	}
-	            }
-	        }
+		try {
+			String pathInfo = request.getPathInfo();
+			
+			String responseType = (new ResponseTypeHelper()).getResponseType(request);
+			if(responseType!=null) {
+				URI basePath = UriBuilder.fromUri(request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+(request.getContextPath().equals("null")?"":request.getContextPath()) + RESTApplication.REST_SERVLET_ALIAS +"/").build();
+				if (pathInfo.startsWith("/" + SitemapResource.PATH_SITEMAPS)) {
+		        	String[] pathSegments = pathInfo.substring(1).split("/");
+		            if(pathSegments.length>=3) {
+		            	String sitemapName = pathSegments[1];
+		            	String pageId = pathSegments[2];
+		            	Sitemap sitemap = (Sitemap) RESTApplication.getModelRepository().getModel(sitemapName + ".sitemap");
+		            	if(sitemap!=null) {
+							return SitemapResource.getPageBean(sitemapName, pageId, basePath);
+		            	}
+		            }
+		        }
+			}
+		} catch (Exception e) {
+			return null;
 		}
 		return null;
 		

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -31,20 +31,58 @@ public class ModbusSerialSlave extends ModbusSlave {
 	private String port = null;
 	private int baud = 9600;
 	private int receiveTimeout = 500; // milliseconds
+	private int dataBits = 8;
+	private String parity = "None"; // "none", "even" or "odd"
+	private Double stopBits = 1.0;
+	private String serialEncoding = Modbus.DEFAULT_SERIAL_ENCODING;
+	
+	public void setReceiveTimeout(int timeout) {
+		this.receiveTimeout = timeout;
+	}
 	
 	public void setPort(String port) {
+		if ((port != null) && (this.port != port)) {
+			logger.debug("overriding modbus port: " + this.port
+					+ " by: " + port
+					+ "but there is currently only one port supported");
+		}
 		this.port = port;
 	}
 
 	public void setBaud(int baud) {
 		this.baud = baud;
 	}
+
+	public void setDatabits(int dataBits) {
+		this.dataBits = dataBits;
+	}
 	
-	public void setReceiveTimeout(int timeout) {
-		this.receiveTimeout = timeout;
+	// Parity string should be "none", "even" or "odd"
+	public void setParity(String parity) {
+		this.parity = parity;
+	}
+	
+	public void setStopbits(Double stopBits) {
+		this.stopBits = stopBits;
 	}
 
-	//	String port = null;
+	private boolean isEncodingValid(String serialEncoding) {
+		for (String str : Modbus.validSerialEncodings) {
+			if (str.trim().contains(serialEncoding))
+				return true;
+		}
+		return false;
+	}
+
+	public void setEncoding(String serialEncoding) {
+		serialEncoding = serialEncoding.toLowerCase();
+
+		if ( isEncodingValid(serialEncoding) ) {
+			this.serialEncoding = serialEncoding;
+		} else {
+			logger.info("Encoding '{}' is unknown", serialEncoding);
+		}
+	}
 
 	private static SerialConnection connection = null;
 
@@ -75,24 +113,24 @@ public class ModbusSerialSlave extends ModbusSlave {
 			//			}
 
 			if (connection == null) {
+				logger.debug("connection was null, going to create a new one");
 				SerialParameters params = new SerialParameters();
 				params.setPortName(port);
 				params.setBaudRate(baud);
-				params.setDatabits(8);
-				params.setParity("None");
-				params.setStopbits(1);
-				params.setEncoding(Modbus.SERIAL_ENCODING_RTU);
+				params.setDatabits(dataBits);
+				params.setParity(parity);
+				params.setStopbits(stopBits);
+				params.setEncoding(serialEncoding);
 				params.setEcho(false);
   		        params.setReceiveTimeout(receiveTimeout);
 				connection = new SerialConnection(params);
-				connection.open();
 			}
 			if (!connection.isOpen()) {
 				connection.open();
 			}
 			((ModbusSerialTransaction)transaction).setSerialConnection(connection);
 		} catch (Exception e) {
-			logger.debug("ModbusSlave: Error connecting to master: " + e.getMessage());				
+			logger.error("ModbusSlave: Error connecting to master: {}", e.getMessage());
 			return false;
 		}
 		return true;

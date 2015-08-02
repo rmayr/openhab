@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -9,7 +9,9 @@
 package org.openhab.binding.fritzbox.internal;
 
 import static org.quartz.JobBuilder.newJob;
+import static org.quartz.JobKey.jobKey;
 import static org.quartz.TriggerBuilder.newTrigger;
+import static org.quartz.TriggerKey.triggerKey;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,8 +44,10 @@ import org.quartz.Job;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.TriggerKey;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +59,7 @@ import org.slf4j.LoggerFactory;
  * and outgoing calls, as well as for connections and disconnections.
  * 
  * @author Kai Kreuzer
+ * @author Jan N. Klug
  * @since 0.7.0
  */
 public class FritzboxBinding extends
@@ -64,16 +69,25 @@ public class FritzboxBinding extends
 	private static HashMap<String, String> commandMap = new HashMap<String, String>();
 	private static HashMap<String, String> queryMap = new HashMap<String, String>();
 
+
+	// TODO: configurable?
+	// daily cron schedule
+	private final String cronSchedule = "0 0 0 * * ?";
+
 	static {
 		commandMap.put(FritzboxBindingProvider.TYPE_DECT,
 				"ctlmgr_ctl w dect settings/enabled");
 		commandMap.put(FritzboxBindingProvider.TYPE_WLAN,
 				"ctlmgr_ctl w wlan settings/ap_enabled");
+		commandMap.put(FritzboxBindingProvider.TYPE_GUEST_WLAN,
+				"ctlmgr_ctl w wlan settings/guest_ap_enabled");
 
 		queryMap.put(FritzboxBindingProvider.TYPE_DECT,
 				"ctlmgr_ctl r dect settings/enabled");
 		queryMap.put(FritzboxBindingProvider.TYPE_WLAN,
 				"ctlmgr_ctl r wlan settings/ap_enabled");
+		queryMap.put(FritzboxBindingProvider.TYPE_GUEST_WLAN,
+				"ctlmgr_ctl r wlan settings/guest_ap_enabled");
 	}
 
 	@Override
@@ -108,6 +122,9 @@ public class FritzboxBinding extends
 	/* The password of the FritzBox to access via Telnet */
 	protected static String password;
 
+	/* The username, if used for telnet connections */
+	protected static String username;
+
 	/**
 	 * Reference to this instance to be used with the reconnection job which is
 	 * static.
@@ -137,7 +154,7 @@ public class FritzboxBinding extends
 	@Override
 	public void internalReceiveCommand(String itemName, Command command) {
 
-		if (password != null) {
+		if (password != null && !password.isEmpty()) {
 			String type = null;
 			for (FritzboxBindingProvider provider : providers) {
 				type = provider.getType(itemName);
@@ -170,25 +187,35 @@ public class FritzboxBinding extends
 					// only do something if the ip has changed
 					FritzboxBinding.ip = ip;
 					conditionalDeActivate();
-
+                    
 					// schedule a daily reconnection as sometimes the FritzBox
 					// stops sending data
 					// and thus blocks the monitor thread
 					try {
 						Scheduler sched = StdSchedulerFactory
 								.getDefaultScheduler();
-						JobDetail job = newJob(ReconnectJob.class)
-								.withIdentity("Reconnect", "FritzBox").build();
+                                
+                        JobKey jobKey = jobKey("Reconnect", "FritzBox");
+                        TriggerKey triggerKey = triggerKey("Reconnect", "FritzBox");
+                        
+                        if (sched.checkExists(jobKey)) {
+                            logger.debug("Daily reconnection job already exists");
+                        } else {
+                            CronScheduleBuilder scheduleBuilder = 
+                            		CronScheduleBuilder.cronSchedule(cronSchedule);
+                            
+                            JobDetail job = newJob(ReconnectJob.class)
+                                    .withIdentity(jobKey)
+                                    .build();
 
-						CronTrigger trigger = newTrigger()
-								.withIdentity("Reconnect", "FritzBox")
-								.withSchedule(
-										CronScheduleBuilder
-												.cronSchedule("0 0 0 * * ?"))
-								.build();
+                            CronTrigger trigger = newTrigger()
+                                    .withIdentity(triggerKey)
+                                    .withSchedule(scheduleBuilder)
+                                    .build();
 
-						sched.scheduleJob(job, trigger);
-						logger.debug("Scheduled a daily reconnection to FritzBox on {}:{}", ip, MONITOR_PORT);
+                            sched.scheduleJob(job, trigger);
+                            logger.debug("Scheduled a daily reconnection to FritzBox on {}:{}", ip, MONITOR_PORT);
+                        }
 					} catch (SchedulerException e) {
 						logger.warn("Could not create daily reconnection job", e);
 					}
@@ -197,6 +224,11 @@ public class FritzboxBinding extends
 			String password = (String) config.get("password");
 			if (StringUtils.isNotBlank(password)) {
 				FritzboxBinding.password = password;
+			}
+
+			String username = (String) config.get("user");
+			if (StringUtils.isNotBlank(username)) {
+				FritzboxBinding.username = username;
 			}
 		}
 	}
@@ -221,6 +253,8 @@ public class FritzboxBinding extends
 					"ctlmgr_ctl w dect settings/enabled");
 			commandMap.put(FritzboxBindingProvider.TYPE_WLAN,
 					"ctlmgr_ctl w wlan settings/ap_enabled");
+			commandMap.put(FritzboxBindingProvider.TYPE_GUEST_WLAN,
+					"ctlmgr_ctl w wlan settings/guest_ap_enabled");
 		}
 
 		public TelnetCommandThread(String type, Command command) {
@@ -267,6 +301,10 @@ public class FritzboxBinding extends
 				 * could be done via a sperate thread but for just sending one
 				 * command it is not necessary
 				 */
+				if (username != null) {
+					receive(client); // user:
+					send(client, username);
+				}
 				receive(client); // password:
 				send(client, password);
 				receive(client); // welcome text
@@ -414,7 +452,11 @@ public class FritzboxBinding extends
 									}
 								}
 							} catch (IOException e) {
-								logger.error("Lost connection to FritzBox", e);
+								if (interrupted) {
+									logger.info("Lost connection to Fritzbox because of interrupt");
+								} else {
+									logger.error("Lost connection to FritzBox", e);
+								}
 								break;
 							}
 						}
@@ -436,7 +478,7 @@ public class FritzboxBinding extends
 			event.timestamp = sections[0];
 			event.eventType = sections[1];
 			event.connectionId = sections[2];
-
+			
 			if (event.eventType.equals("RING")) {
 				event.externalNo = sections[3];
 				event.internalNo = sections[4];
@@ -488,7 +530,6 @@ public class FritzboxBinding extends
 						.getItemNamesForType(bindingType)) {
 					Class<? extends Item> itemType = provider
 							.getItemType(itemName);
-
 					org.openhab.core.types.State state = null;
 					if (event.eventType.equals("DISCONNECT")) {
 						state = itemType.isAssignableFrom(SwitchItem.class) ? OnOffType.OFF
@@ -557,13 +598,14 @@ public class FritzboxBinding extends
 	@Override
 	protected void execute() {
 
+		if (password == null)
+			return;
+		else if (password.trim().isEmpty())
+			return;
+		
 		try {
-			TelnetClient client = new TelnetClient();
-			client.connect(ip);
-
-			receive(client);
-			send(client, password);
-			receive(client);
+			TelnetClient client = null ;
+			
 
 			for (FritzboxBindingProvider provider : providers) {
 				for (String item : provider.getItemNames()) {
@@ -580,6 +622,18 @@ public class FritzboxBinding extends
 					}else
 						continue;
 
+					if (client == null){
+						client = new TelnetClient();
+						client.connect(ip);
+						if (username != null) {
+							receive(client);
+							send(client, username);
+						}
+						receive(client);
+						send(client, password);
+						receive(client);
+					}
+					
 					send(client, query);
 
 					String answer = receive(client);
@@ -609,10 +663,10 @@ public class FritzboxBinding extends
 
 				}
 			}
-
-			client.disconnect();
+			if (client != null)
+				client.disconnect();
 		} catch (Exception e) {
-			logger.warn("Could not get item state", e);
+			logger.warn("Could not get item state ", e);
 		}
 
 	}

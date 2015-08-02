@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2014, openHAB.org and others.
+ * Copyright (c) 2010-2015, openHAB.org and others.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -46,10 +46,12 @@ import com.tinkerforge.TimeoutException;
  * <ul>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getLogger <em>Logger</em>}</li>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getUid <em>Uid</em>}</li>
+ *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#isPoll <em>Poll</em>}</li>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getEnabledA <em>Enabled A</em>}</li>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getSubId <em>Sub Id</em>}</li>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getMbrick <em>Mbrick</em>}</li>
  *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getSensorValue <em>Sensor Value</em>}</li>
+ *   <li>{@link org.openhab.binding.tinkerforge.internal.model.impl.MIndustrialDigitalInImpl#getDeviceType <em>Device Type</em>}</li>
  * </ul>
  * </p>
  *
@@ -96,6 +98,26 @@ public class MIndustrialDigitalInImpl extends MinimalEObjectImpl.Container imple
    * @ordered
    */
   protected String uid = UID_EDEFAULT;
+
+  /**
+   * The default value of the '{@link #isPoll() <em>Poll</em>}' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #isPoll()
+   * @generated
+   * @ordered
+   */
+  protected static final boolean POLL_EDEFAULT = true;
+
+  /**
+   * The cached value of the '{@link #isPoll() <em>Poll</em>}' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #isPoll()
+   * @generated
+   * @ordered
+   */
+  protected boolean poll = POLL_EDEFAULT;
 
   /**
    * The default value of the '{@link #getEnabledA() <em>Enabled A</em>}' attribute.
@@ -146,6 +168,26 @@ public class MIndustrialDigitalInImpl extends MinimalEObjectImpl.Container imple
    * @ordered
    */
   protected HighLowValue sensorValue;
+
+  /**
+   * The default value of the '{@link #getDeviceType() <em>Device Type</em>}' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getDeviceType()
+   * @generated
+   * @ordered
+   */
+  protected static final String DEVICE_TYPE_EDEFAULT = "digital_4in";
+
+  /**
+   * The cached value of the '{@link #getDeviceType() <em>Device Type</em>}' attribute.
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @see #getDeviceType()
+   * @generated
+   * @ordered
+   */
+  protected String deviceType = DEVICE_TYPE_EDEFAULT;
 
   private short inNum;
 
@@ -218,6 +260,29 @@ private int mask;
     uid = newUid;
     if (eNotificationRequired())
       eNotify(new ENotificationImpl(this, Notification.SET, ModelPackage.MINDUSTRIAL_DIGITAL_IN__UID, oldUid, uid));
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public boolean isPoll()
+  {
+    return poll;
+  }
+
+  /**
+   * <!-- begin-user-doc -->
+   * <!-- end-user-doc -->
+   * @generated
+   */
+  public void setPoll(boolean newPoll)
+  {
+    boolean oldPoll = poll;
+    poll = newPoll;
+    if (eNotificationRequired())
+      eNotify(new ENotificationImpl(this, Notification.SET, ModelPackage.MINDUSTRIAL_DIGITAL_IN__POLL, oldPoll, poll));
   }
 
   /**
@@ -337,93 +402,97 @@ private int mask;
   /**
    * <!-- begin-user-doc -->
    * <!-- end-user-doc -->
-   * @generated NOT
+   * @generated
    */
-  public HighLowValue fetchSensorValue()
+  public String getDeviceType()
   {
-	  HighLowValue value = HighLowValue.UNDEF;
-	  try {
-		value = extractValue(getMbrick().getTinkerforgeDevice().getValue());
-	} catch (TimeoutException e) {
-		TinkerforgeErrorHandler.handleError(this,
-				TinkerforgeErrorHandler.TF_TIMEOUT_EXCEPTION, e);
-	} catch (NotConnectedException e) {
-		TinkerforgeErrorHandler.handleError(this,
-				TinkerforgeErrorHandler.TF_NOT_CONNECTION_EXCEPTION, e);
-	}
-	  return value;
+    return deviceType;
   }
 
   /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
+   * <!-- begin-user-doc --> <!-- end-user-doc -->
+   * 
    * @generated NOT
    */
-  public void init()
-  {
-	    setEnabledA(new AtomicBoolean());
-		logger = LoggerFactory.getLogger(MIndustrialDigitalInImpl.class);
-		inNum = Short.parseShort(String.valueOf(subId.charAt(subId.length() - 1)));
-		mask = 0001 << inNum;
+  public void fetchSensorValue() {
+    HighLowValue value = HighLowValue.UNDEF;
+    try {
+      value = extractValue(getMbrick().getTinkerforgeDevice().getValue());
+      setSensorValue(value);
+    } catch (TimeoutException e) {
+      TinkerforgeErrorHandler.handleError(this, TinkerforgeErrorHandler.TF_TIMEOUT_EXCEPTION, e);
+    } catch (NotConnectedException e) {
+      TinkerforgeErrorHandler.handleError(this,
+          TinkerforgeErrorHandler.TF_NOT_CONNECTION_EXCEPTION, e);
+    }
   }
 
   /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
+   * <!-- begin-user-doc --> <!-- end-user-doc -->
+   * 
    * @generated NOT
    */
-	public void enable() {
-		setSensorValue(HighLowValue.UNDEF);
-		MBrickletIndustrialDigitalIn4 bricklet = getMbrick();
-		if (bricklet == null) {
-			logger.error("{} No brick found for Digital4In: {} ",
-					LoggerConstants.TFINIT, subId);
-		} else {
-			BrickletIndustrialDigitalIn4 brickletIndustrialDigitalIn4 = bricklet
-					.getTinkerforgeDevice();
-			interruptListener = new InterruptListener();
-			brickletIndustrialDigitalIn4
-					.addInterruptListener(interruptListener);
-			setSensorValue(fetchSensorValue());
-		}
-	}
+  public void init() {
+    setEnabledA(new AtomicBoolean());
+    logger = LoggerFactory.getLogger(MIndustrialDigitalInImpl.class);
+    inNum = Short.parseShort(String.valueOf(subId.charAt(subId.length() - 1)));
+    mask = 0001 << inNum;
+  }
 
   /**
-  *
-  * @generated NOT
-  */
-	private HighLowValue extractValue(int valueMask) {
-		HighLowValue value = HighLowValue.UNDEF;
-		if ((valueMask & mask) == mask) {
-			value = HighLowValue.HIGH;
-		} else {
-			value = HighLowValue.LOW;
-		}
-		return value;
-	}
-
-	/**
-	 * 
-	 * @generated NOT
-	 */
-	private class InterruptListener implements
-			BrickletIndustrialDigitalIn4.InterruptListener {
-		@Override
-		public void interrupt(int interruptMask, int valueMask) {
-			if ((interruptMask & mask) == mask) {
-				setSensorValue(extractValue(valueMask));
-			}
-		}
-	}
-  
-  /**
-   * <!-- begin-user-doc -->
-   * <!-- end-user-doc -->
+   * <!-- begin-user-doc --> <!-- end-user-doc -->
+   * 
    * @generated NOT
    */
-  public void disable()
-  {
-	  getMbrick().getTinkerforgeDevice().removeInterruptListener(interruptListener);
+  public void enable() {
+    setSensorValue(HighLowValue.UNDEF);
+    MBrickletIndustrialDigitalIn4 bricklet = getMbrick();
+    if (bricklet == null) {
+      logger.error("{} No brick found for Digital4In: {} ", LoggerConstants.TFINIT, subId);
+    } else {
+      BrickletIndustrialDigitalIn4 brickletIndustrialDigitalIn4 = bricklet.getTinkerforgeDevice();
+      interruptListener = new InterruptListener();
+      brickletIndustrialDigitalIn4.addInterruptListener(interruptListener);
+      fetchSensorValue();
+    }
+  }
+
+  /**
+   * 
+   * @generated NOT
+   */
+  private HighLowValue extractValue(int valueMask) {
+    HighLowValue value = HighLowValue.UNDEF;
+    if ((valueMask & mask) == mask) {
+      value = HighLowValue.HIGH;
+    } else {
+      value = HighLowValue.LOW;
+    }
+    return value;
+  }
+
+  /**
+   * 
+   * @generated NOT
+   */
+  private class InterruptListener implements BrickletIndustrialDigitalIn4.InterruptListener {
+    @Override
+    public void interrupt(int interruptMask, int valueMask) {
+      if ((interruptMask & mask) == mask) {
+        setSensorValue(extractValue(valueMask));
+      }
+    }
+  }
+
+  /**
+   * <!-- begin-user-doc --> <!-- end-user-doc -->
+   * 
+   * @generated NOT
+   */
+  public void disable() {
+    if (interruptListener != null){
+      getMbrick().getTinkerforgeDevice().removeInterruptListener(interruptListener);
+    }
   }
 
   /**
@@ -490,6 +559,8 @@ private int mask;
         return getLogger();
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__UID:
         return getUid();
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__POLL:
+        return isPoll();
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__ENABLED_A:
         return getEnabledA();
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__SUB_ID:
@@ -498,6 +569,8 @@ private int mask;
         return getMbrick();
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__SENSOR_VALUE:
         return getSensorValue();
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__DEVICE_TYPE:
+        return getDeviceType();
     }
     return super.eGet(featureID, resolve, coreType);
   }
@@ -517,6 +590,9 @@ private int mask;
         return;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__UID:
         setUid((String)newValue);
+        return;
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__POLL:
+        setPoll((Boolean)newValue);
         return;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__ENABLED_A:
         setEnabledA((AtomicBoolean)newValue);
@@ -550,6 +626,9 @@ private int mask;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__UID:
         setUid(UID_EDEFAULT);
         return;
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__POLL:
+        setPoll(POLL_EDEFAULT);
+        return;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__ENABLED_A:
         setEnabledA(ENABLED_A_EDEFAULT);
         return;
@@ -580,6 +659,8 @@ private int mask;
         return LOGGER_EDEFAULT == null ? logger != null : !LOGGER_EDEFAULT.equals(logger);
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__UID:
         return UID_EDEFAULT == null ? uid != null : !UID_EDEFAULT.equals(uid);
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__POLL:
+        return poll != POLL_EDEFAULT;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__ENABLED_A:
         return ENABLED_A_EDEFAULT == null ? enabledA != null : !ENABLED_A_EDEFAULT.equals(enabledA);
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__SUB_ID:
@@ -588,6 +669,8 @@ private int mask;
         return getMbrick() != null;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN__SENSOR_VALUE:
         return sensorValue != null;
+      case ModelPackage.MINDUSTRIAL_DIGITAL_IN__DEVICE_TYPE:
+        return DEVICE_TYPE_EDEFAULT == null ? deviceType != null : !DEVICE_TYPE_EDEFAULT.equals(deviceType);
     }
     return super.eIsSet(featureID);
   }
@@ -660,7 +743,8 @@ private int mask;
     switch (operationID)
     {
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN___FETCH_SENSOR_VALUE:
-        return fetchSensorValue();
+        fetchSensorValue();
+        return null;
       case ModelPackage.MINDUSTRIAL_DIGITAL_IN___INIT:
         init();
         return null;
@@ -689,12 +773,16 @@ private int mask;
     result.append(logger);
     result.append(", uid: ");
     result.append(uid);
+    result.append(", poll: ");
+    result.append(poll);
     result.append(", enabledA: ");
     result.append(enabledA);
     result.append(", subId: ");
     result.append(subId);
     result.append(", sensorValue: ");
     result.append(sensorValue);
+    result.append(", deviceType: ");
+    result.append(deviceType);
     result.append(')');
     return result.toString();
   }
