@@ -55,7 +55,7 @@ public class ModbusBinding extends AbstractActiveBinding<ModbusBindingProvider> 
 	private static final String TCP_PREFIX = "tcp";
 	private static final String SERIAL_PREFIX = "serial";
 
-	private static final String VALID_COFIG_KEYS = "connection|id|start|length|type|valuetype|rawdatamultiplier|writemultipleregisters";
+	private static final String VALID_COFIG_KEYS = "connection|id|start|length|step|type|valuetype|rawdatamultiplier|writemultipleregisters|readmultipleregisters";
 	private static final Pattern EXTRACT_MODBUS_CONFIG_PATTERN =
 		Pattern.compile("^("+TCP_PREFIX+"|"+UDP_PREFIX+"|"+SERIAL_PREFIX+"|)\\.(.*?)\\.(" + VALID_COFIG_KEYS + ")$");
 
